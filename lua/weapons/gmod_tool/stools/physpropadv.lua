@@ -5,7 +5,7 @@ TOOL.Name = "#tool.physpropadv.name"
 TOOL.ClientConVar[ "gravity" ] = 1
 TOOL.ClientConVar[ "material" ] = "metal_bouncy"
 TOOL.ClientConVar[ "enabled" ] = 1
-TOOL.ClientConVar[ "footsteps" ] = "grass"
+TOOL.ClientConVar[ "footsteps" ] = "grass.step"
 TOOL.ClientConVar[ "footsteps_enabled" ] = 1
 TOOL.ClientConVar[ "footsteps_mode" ] = 1
 
@@ -365,15 +365,16 @@ local function FindRow(list,f,col)
 		if v:GetValue(col) == f then return v end
 	end
 end
-net.Receive("updatelists",function() -- called when right clicking a prop
+local function UpdateLists(m,f)
 	if not list_phys then return end -- fixes error if the menu hasn't been loaded yet
 	list_phys:ClearSelection()
 	list_foot:ClearSelection()
-	local sel = FindRow(list_phys,net.ReadString(),5)
+	local sel = FindRow(list_phys,m,5)
 	if sel then list_phys:SelectItem(sel) end
-	sel = FindRow(list_foot,net.ReadString(),2)
+	sel = FindRow(list_foot,f,2)
 	if sel then list_foot:SelectItem(sel) end
-end)
+end
+net.Receive("updatelists",function() UpdateLists(net.ReadString(),net.ReadString()) end) -- called when right clicking a prop
 
 function TOOL.BuildCPanel( CPanel )
 	for k,v in ipairs(materials_list) do
@@ -384,8 +385,14 @@ function TOOL.BuildCPanel( CPanel )
 		language.Add("physpropadv_foot."..v[1],v[2])
 	end
 
-	CPanel:AddControl( "ComboBox", { MenuButton = 1, Folder = "physpropadv", Options = { [ "#preset.default" ] = ConVarsDefault }, CVars = table.GetKeys( ConVarsDefault ) } )
+	--CPanel:AddControl( "ComboBox", { MenuButton = 1, Folder = "physpropadv", Options = { [ "#preset.default" ] = ConVarsDefault }, CVars = table.GetKeys( ConVarsDefault ) } )
 
+	local presetsbox = CPanel:ToolPresets("physpropadv",ConVarsDefault)
+	presetsbox_select = presetsbox.OnSelect
+	presetsbox.OnSelect = function(self,i,v,d)
+		presetsbox_select(self,i,v,d)
+		UpdateLists(d.physpropadv_material,d.physpropadv_footsteps)
+	end
 	--CPanel:AddControl( "ListBox", { Label = "#tool.physpropadv.material", Options = list.Get( "AdvPhysMaterials" ) } )
 	
 	CPanel:CheckBox("#tool.physpropadv.enable","physpropadv_enabled")
