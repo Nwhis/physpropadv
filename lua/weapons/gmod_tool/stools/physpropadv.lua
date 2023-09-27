@@ -458,6 +458,7 @@ function TOOL.BuildCPanel( CPanel )
 		local click = list:GetLine(index):GetValue(2)
 		local data = footstep_sounds[click]
 		if not data then data = CacheMaterialSnd(click) end
+		if not data then return end
 		local snd = data[list_foot_preview and 2 or 1].name
 		list_foot_preview = !list_foot_preview
 		LocalPlayer():EmitSound(snd)
