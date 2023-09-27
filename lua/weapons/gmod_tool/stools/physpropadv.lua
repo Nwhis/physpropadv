@@ -41,6 +41,8 @@ local function GetMaterialSnd(mat) -- get footstep sound from physics material (
 	local surfdata = util.GetSurfaceData(util.GetSurfaceIndex(mat))
 	if not surfdata then return nil end
 	local name = string.sub(surfdata.stepLeftSound,1,-5) --Plastic_Barrel.Step
+	if name == "default.step" then name = "concrete.step" end
+	if name == "mud.step" then name = "slipperyslime.step" end
 	footstep_lookup[mat] = name
 	CacheMaterialSnd(name)
 	return name -- return the sound name
@@ -56,6 +58,7 @@ if CLIENT then
 	language.Add(t.."material","Physical Material")
 	language.Add(t.."material.fric","Friction")
 	language.Add(t.."material.elas","Elasticity")
+	language.Add(t.."material.cat","Category")
 	language.Add(t.."enable","Apply physical properties")
 	language.Add(t.."footsteps","Footstep Override")
 	language.Add(t.."gravity","Enable Gravity")
@@ -176,10 +179,14 @@ function TOOL:RightClick( trace )
 			if ply != self:GetOwner() then return end
 			f = GetMaterialSnd(net.ReadString()) -- yes, it really is this complicated
 			self:GetOwner():ConCommand("physpropadv_footsteps "..f)
+			net.Start("updatelists") net.WriteString(m) net.WriteString(f) net.Send(self:GetOwner())
 		end)
-	else self:GetOwner():ConCommand("physpropadv_footsteps "..f) end
+	else
+		self:GetOwner():ConCommand("physpropadv_footsteps "..f)
+		net.Start("updatelists") net.WriteString(m) net.WriteString(f) net.Send(self:GetOwner())
+	end
 	self:GetOwner():ConCommand("physpropadv_material "..m)
-	net.Start("updatelists") net.WriteString(m) net.WriteString(f) net.Send(self:GetOwner())
+	
 	return true
 end
 function TOOL:Reload( trace )
@@ -210,81 +217,90 @@ end
 local ConVarsDefault = TOOL:BuildConVarList()
 
 local materials_list = {
-	{"default","Default"},
-	{"solidmetal","Metal Solid"},
-	{"metal_box","Metal Box"},
-	{"metal","Metal"},
-	{"slipperymetal","Metal Slippery"},
-	{"metal_bouncy","Metal Bouncy"},
-	{"metalgrate","Metal Grate"},
-	{"metalvent","Metal Vent"},
-	{"metalpanel","Metal Panel"},
-	{"dirt","Dirt"},
-	{"mud","Mud"},
-	{"slipperyslime","Slime Slippery"},
-	{"grass","Grass"},
-	{"tile","Tile"},
-	{"wood","Wood"},
-	{"wood_box","Wood Box"},
-	{"wood_crate","Wood Crate"},
-	{"wood_plank","Wood Plank"},
-	{"wood_solid","Wood Solid"},
-	{"wood_furniture","Wood Furniture"},
-	{"wood_panel","Wood Panel"},
-	{"water","Water"},
-	{"slime","Slime"},
-	{"wade","Water Wade"},
-	{"glass","Glass"},
-	{"computer","Computer"},
-	{"concrete","Concrete"},
-	{"rock","Rock"},
-	{"boulder","Boulder"},
-	{"gravel","Gravel"},
-	{"concrete_block","Concrete Block"},
-	{"chainlink","Chainlink"},
-	{"flesh","Flesh"},
-	{"bloodyflesh","Flesh Bloody"},
-	{"watermelon","Watermelon"},
-	{"snow","Snow"},
-	{"ice","Ice"},
-	{"carpet","Carpet"},
-	{"plaster","Plaster"},
-	{"cardboard","Cardboard"},
-	{"plastic_barrel","Plastic Barrel"},
-	{"plastic_box","Plastic Box"},
-	{"plastic","Plastic"},
-	{"rubber","Rubber"},
-	{"rubbertire","Rubber Tire"},
-	{"glassbottle","Glass Bottle"},
-	{"pottery","Pottery"},
-	{"grenade","Grenade"},
-	{"canister","Canister"},
-	{"metal_barrel","Metal Barrel"},
-	{"roller","Metal Roller"},
-	{"popcan","Pop Can"},
-	{"paintcan","Paint Can"},
-	{"papercup","Paper Cup"},
-	{"ceiling_tile","Ceiling Tile"},
-	{"weapon","Metal Weapon"},
-	{"metalvehicle","Metal Vehicle"},
-	{"crowbar","Metal Crowbar"},
-	{"gunship","Gunship"},
-	{"strider","Strider"},
-	{"jalopytire","Jalopy Tire"},
-	{"jalopy","Jalopy"},
-	{"gmod_ice","Super Ice"},
-	{"gmod_bouncy","Super Bouncy"},
-	{"phx_tire_normal","Phx Tire Normal"},
-	{"phx_explosiveball","Phx Explosive Ball"},
-	{"gm_ps_woodentire","Phx Wooden Wheel"},
-	{"gm_ps_metaltire","Phx Metal Wheel"},
-	{"gm_ps_soccerball","Soccer Ball"},
-	{"phx_rubbertire","Phx RubberTire"},
-	{"phx_rubbertire2","Phx RubberTire 2"},
-	{"default_silent","Silent"},
-	{"jeeptire","Jeep Tire"}
+	{"default","Default",7},
+	{"solidmetal","Metal Solid",1},
+	{"metal_box","Metal Box",1},
+	{"metal","Metal",1},
+	{"slipperymetal","Metal Slippery",1},
+	{"metal_bouncy","Metal Bouncy",1},
+	{"metalgrate","Metal Grate",1},
+	{"metalvent","Metal Vent",1},
+	{"metalpanel","Metal Panel",1},
+	{"dirt","Dirt",5},
+	{"mud","Mud",5},
+	{"slipperyslime","Slime Slippery",5},
+	{"grass","Grass",5},
+	{"tile","Tile",8},
+	{"wood","Wood",2},
+	{"wood_box","Wood Box",2},
+	{"wood_crate","Wood Crate",2},
+	{"wood_plank","Wood Plank",2},
+	{"wood_solid","Wood Solid",2},
+	{"wood_furniture","Wood Furniture",2},
+	{"wood_panel","Wood Panel",2},
+	{"water","Water",5},
+	{"slime","Slime",5},
+	{"wade","Water Wade",5},
+	{"glass","Glass",8},
+	{"computer","Computer",8},
+	{"concrete","Concrete",5},
+	{"rock","Rock",5},
+	{"boulder","Boulder",5},
+	{"gravel","Gravel",5},
+	{"concrete_block","Concrete Block",5},
+	{"chainlink","Chainlink",1},
+	{"flesh","Flesh",4},
+	{"bloodyflesh","Flesh Bloody",4},
+	{"watermelon","Watermelon",4},
+	{"snow","Snow",5},
+	{"ice","Ice",5},
+	{"carpet","Carpet",8},
+	{"plaster","Plaster",8},
+	{"cardboard","Cardboard",8},
+	{"plastic_barrel","Plastic Barrel",8},
+	{"plastic_box","Plastic Box",8},
+	{"plastic","Plastic",8},
+	{"rubber","Rubber",3},
+	{"rubbertire","Rubber Tire",3},
+	{"glassbottle","Glass Bottle",8},
+	{"pottery","Pottery",8},
+	{"grenade","Grenade",1},
+	{"canister","Canister",1},
+	{"metal_barrel","Metal Barrel",1},
+	{"roller","Metal Roller",1},
+	{"popcan","Pop Can",1},
+	{"paintcan","Paint Can",8},
+	{"papercup","Paper Cup",8},
+	{"ceiling_tile","Ceiling Tile",8},
+	{"weapon","Metal Weapon",1},
+	{"metalvehicle","Metal Vehicle",1},
+	{"crowbar","Crowbar",1},
+	{"gunship","Gunship",1},
+	{"strider","Strider",4},
+	{"jalopytire","Jalopy Tire",3},
+	{"jalopy","Jalopy",1},
+	{"gmod_ice","Super Ice",7},
+	{"gmod_bouncy","Super Bouncy",7},
+	{"phx_tire_normal","Phx Tire Normal",3},
+	{"phx_explosiveball","Phx Explosive Ball",1},
+	{"gm_ps_woodentire","Phx Wooden Wheel",2},
+	{"gm_ps_metaltire","Phx Metal Wheel",1},
+	{"gm_ps_soccerball","Soccer Ball",8},
+	{"phx_rubbertire","Phx RubberTire",3},
+	{"phx_rubbertire2","Phx RubberTire 2",3},
+	{"default_silent","Silent",7},
+	{"jeeptire","Jeep Tire",3}
 }
-
+local material_categories = {
+	"Metal",
+	"Wood",
+	"Rubber",
+	"Organic",
+	"Terrain",
+	"Misc",
+	"Special",
+	"Other"
+}
 local footsteps_list = {
 	{"dirt.step","Dirt"},
 	{"grass.step","Grass"},
@@ -325,6 +341,7 @@ for k,v in ipairs(materials_list) do
 	local data = util.GetSurfaceData(util.GetSurfaceIndex(v[1]))
 	table.insert(v,math.Round(data.friction,4))
 	table.insert(v,math.Round(data.elasticity,4))
+	materials_list[k][3] = material_categories[materials_list[k][3]]
 	--list.Set("AdvPhysMaterials","#physpropadv_mat."..v[1],{physpropadv_material = v[1]})
 end
 /*
@@ -348,11 +365,11 @@ local function FindRow(list,f,col)
 		if v:GetValue(col) == f then return v end
 	end
 end
-net.Receive("updatelists",function()
-	if not list_phys then return end
+net.Receive("updatelists",function() -- called when right clicking a prop
+	if not list_phys then return end -- fixes error if the menu hasn't been loaded yet
 	list_phys:ClearSelection()
 	list_foot:ClearSelection()
-	local sel = FindRow(list_phys,net.ReadString(),4)
+	local sel = FindRow(list_phys,net.ReadString(),5)
 	if sel then list_phys:SelectItem(sel) end
 	sel = FindRow(list_foot,net.ReadString(),2)
 	if sel then list_foot:SelectItem(sel) end
@@ -380,25 +397,28 @@ function TOOL.BuildCPanel( CPanel )
 	
 	list_phys = vgui.Create("DListView",CPanel)
 	list_phys:SetDataHeight(18)
+	list_phys:AddColumn("#tool.physpropadv.material.cat"):SetMaxWidth(50)
 	list_phys:AddColumn("#tool.physpropadv.material")
 	list_phys:AddColumn("#tool.physpropadv.material.fric"):SetMaxWidth(50)
 	list_phys:AddColumn("#tool.physpropadv.material.elas"):SetMaxWidth(50)
 	list_phys:AddColumn("data"):SetFixedWidth(0)
 	local sorted = SortTbl(materials_list)
 	for k, mat in ipairs( sorted ) do
-		local line = list_phys:AddLine( mat[2],mat[3],mat[4],mat[1] )
+		local line = list_phys:AddLine( mat[3],mat[2],mat[4],mat[5],mat[1] )
 		if ( GetConVarString( "physpropadv_material" ) == tostring( mat[1] ) ) then line:SetSelected( true ) end
 	end
 	list_phys:SetSize(0,300)
 	CPanel:AddItem(list_phys)
 	list_phys:SetTooltip("#tool.physpropadv.tooltip.list")
+	list_phys:SetTooltipDelay(1)
 	
 	list_phys.OnRowSelected = function(panel,rowIndex,row)
-		RunConsoleCommand("physpropadv_material",row:GetValue(4))
+		RunConsoleCommand("physpropadv_material",row:GetValue(5))
 	end
 	list_phys.DoDoubleClick = function(list,index)
-		local mat = list:GetLine(index):GetValue(4)
+		local mat = list:GetLine(index):GetValue(5)
 		local data = util.GetSurfaceData(util.GetSurfaceIndex(mat))
+		if not data then return end
 		local vol = math.Rand(1,2)
 		local snd = vol > 1.5 and data.impactHardSound or data.impactSoftSound
 		LocalPlayer():EmitSound(snd,nil,nil,vol*0.1)
@@ -414,6 +434,7 @@ function TOOL.BuildCPanel( CPanel )
 	combobox:AddChoice("Same as Physprop",1)
 	combobox:AddChoice("Choose Manually",2)
 	combobox:SetTooltip("#tool.physpropadv.tooltip.combobox")
+	combobox:SetTooltipDelay(1)
 	--CPanel:AddItem(Label("#tool.physpropadv.footsteps_mode",CPanel),combobox)
 	
 	list_foot = vgui.Create("DListView",CPanel)
@@ -427,17 +448,18 @@ function TOOL.BuildCPanel( CPanel )
 	list_foot:SetSize(0,200)
 	CPanel:AddItem(list_foot)
 	list_foot:SetTooltip("#tool.physpropadv.tooltip.list")
+	list_foot:SetTooltipDelay(1)
 	
 	list_foot.OnRowSelected = function(panel,rowIndex,row)
 		RunConsoleCommand("physpropadv_footsteps",row:GetValue(2))
 	end
+	local list_foot_preview = false
 	list_foot.DoDoubleClick = function(list,index)
 		local click = list:GetLine(index):GetValue(2)
 		local data = footstep_sounds[click]
-		print(data)
 		if not data then data = CacheMaterialSnd(click) end
-		print(data)
-		local snd = data[math.random(1,2)].name
+		local snd = data[list_foot_preview and 2 or 1].name
+		list_foot_preview = !list_foot_preview
 		LocalPlayer():EmitSound(snd)
 	end
 	
