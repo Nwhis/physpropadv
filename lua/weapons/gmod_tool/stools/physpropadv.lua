@@ -69,11 +69,32 @@ if CLIENT then
 Prop Default: Use the prop's original footstep sounds
 Same as Physprop: Use the selected physprop's footstep sounds
 (or the prop's current physprop, if "Apply physical properties" is disabled)]])
-	
-	local l = Vector(0, 0, -1)
+
+	local function FootTrace(p1,p2,ply)
+		--local da,db = ply:GetCollisionBounds()
+		--debugoverlay.Box(p1,da,db,15,Color(255,0,0,50))
+		--debugoverlay.Box(p2,da,db,15,Color(0,255,0,50))
+		return util.TraceEntity({start = p1, endpos = p2, filter = ply}, ply)
+	end
 	hook.Add("PlayerFootstep", "footstep_override", function(ply, pos, foot, snd, vol)
 		local p = ply:GetPos()
-		local tr = util.TraceEntity({start = p, endpos = p + l, filter = ply}, ply)
+		local traceoffset = Vector(0,0,-1)
+		local tr = FootTrace(p,p + traceoffset,ply)
+		if tr.HitWorld then return end
+		local ent = tr.Entity
+		if not ent or not ent:IsValid() then
+			traceoffset = Vector(0,0,-12)
+			tr = FootTrace(p,p + traceoffset,ply)
+			if tr.HitWorld then return end
+			ent = tr.Entity
+		end
+		if not ent or not ent:IsValid() then
+			traceoffset = traceoffset + ply:GetVelocity()*0.015
+			tr = FootTrace(p,p + traceoffset,ply)
+			if tr.HitWorld then return end
+			ent = tr.Entity
+		end
+		
 		local ent = tr.Entity
 		if not ent or not ent:IsValid() then return end
 		
@@ -466,6 +487,7 @@ function TOOL.BuildCPanel( CPanel )
 		local data = footstep_sounds[click]
 		if not data then data = CacheMaterialSnd(click) end
 		if not data then return end
+		if data == "invalid" then return end
 		local snd = data[list_foot_preview and 2 or 1].name
 		list_foot_preview = !list_foot_preview
 		LocalPlayer():EmitSound(snd)
